@@ -1,0 +1,23 @@
+# Setup for SPA and ESM modules in cPanel
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # Handle SPA Routing (if you add routes later)
+    RewriteRule ^index\.html$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
+</IfModule>
+
+# Add MIME types for ESM and TSX
+<IfModule mod_mime.c>
+    AddType application/javascript .js
+    AddType application/javascript .tsx
+    AddType application/javascript .ts
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+</IfModule>

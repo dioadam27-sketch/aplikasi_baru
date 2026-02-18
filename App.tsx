@@ -1,0 +1,335 @@
+import React, { useState, useEffect } from 'react';
+import LoginModal from './components/LoginModal';
+import AppEditorModal from './components/AppEditorModal';
+import DeleteConfirmationModal from './components/DeleteConfirmationModal';
+import Sidebar from './components/Sidebar';
+import { Plus, Edit2, Trash2, LayoutGrid, ExternalLink, BookOpen, GraduationCap, Users, FileText, BarChart3, Monitor, HelpCircle, Database, AlertCircle, RefreshCw, Clock, ArrowRight, ShieldCheck, WifiOff } from 'lucide-react';
+import { AppItem, PageConfig, AppColor } from './types';
+import { INITIAL_CONFIG } from './constants';
+
+const API_URL = 'https://pkkii.pendidikan.unair.ac.id/pdb/api.php';
+const LOGO_URL = 'https://ppk2ipe.unair.ac.id/gambar/UNAIR_BRANDMARK_2025-02.png';
+
+const colorVariants: Record<AppColor, { bg: string, text: string, light: string }> = {
+  blue: { bg: 'bg-[#002147]', text: 'text-[#002147]', light: 'bg-blue-50' },
+  green: { bg: 'bg-emerald-600', text: 'text-emerald-600', light: 'bg-emerald-50' },
+  orange: { bg: 'bg-orange-600', text: 'text-orange-600', light: 'bg-orange-50' },
+  purple: { bg: 'bg-purple-600', text: 'text-purple-600', light: 'bg-purple-50' },
+  red: { bg: 'bg-red-600', text: 'text-red-600', light: 'bg-red-50' },
+  teal: { bg: 'bg-teal-600', text: 'text-teal-600', light: 'bg-teal-50' },
+};
+
+const App: React.FC = () => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingApp, setEditingApp] = useState<AppItem | null>(null);
+  const [deleteApp, setDeleteApp] = useState<AppItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<boolean>(false); // Changed to boolean for cleaner UI logic
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  const [apps, setApps] = useState<AppItem[]>([]);
+  const [pageConfig, setPageConfig] = useState<PageConfig>(INITIAL_CONFIG);
+
+  const fetchData = async (isBackground = false) => {
+    try {
+      if (!isBackground) {
+        setIsLoading(true);
+      }
+      
+      const response = await fetch(`${API_URL}?action=get_data`);
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const data = await response.json();
+      
+      if (data.apps) {
+        setApps(data.apps.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          url: item.url,
+          iconUrl: item.icon_url,
+          category: item.category,
+          status: item.status,
+          color: item.color
+        })));
+      }
+      if (data.config) {
+        setPageConfig({
+          heroTitle: data.config.hero_title,
+          heroDescription: data.config.hero_description
+        });
+      }
+      setApiError(false);
+    } catch (error: any) {
+      console.error("Fetch error:", error);
+      // Only set error state, do NOT alert
+      setApiError(true);
+    } finally {
+      if (!isBackground) {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchData(); // Initial Load
+    
+    // Auto-sync mechanism (Polling every 3 seconds)
+    const syncInterval = setInterval(() => {
+      fetchData(true);
+    }, 3000);
+
+    // Clock timer
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => {
+      clearInterval(syncInterval);
+      clearInterval(timer);
+    };
+  }, []);
+
+  const handleLogin = (password: string) => {
+    if (password === '112233') {
+      setIsAdmin(true);
+      return true;
+    }
+    return false;
+  };
+
+  const handleSaveApp = async (app: AppItem) => {
+    try {
+      const res = await fetch(`${API_URL}?action=save_app`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...app, icon_url: app.iconUrl })
+      });
+      if (!res.ok) throw new Error('Simpan gagal');
+      setEditingApp(null);
+      await fetchData(); 
+    } catch (error) {
+      alert("Gagal menyimpan data. Periksa koneksi internet.");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteApp) return;
+    try {
+      const res = await fetch(`${API_URL}?action=delete_app`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: deleteApp.id })
+      });
+      if (!res.ok) throw new Error('Hapus gagal');
+      setDeleteApp(null);
+      await fetchData();
+    } catch (error) {
+       alert("Gagal menghapus data.");
+    }
+  };
+
+  const handleConfigChange = async (key: keyof PageConfig, value: string) => {
+    const newConfig = { ...pageConfig, [key]: value };
+    setPageConfig(newConfig);
+    try {
+      await fetch(`${API_URL}?action=update_config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          heroTitle: key === 'heroTitle' ? value : pageConfig.heroTitle,
+          heroDescription: key === 'heroDescription' ? value : pageConfig.heroDescription
+        })
+      });
+    } catch (error) {
+      // Fail silently for config updates
+    }
+  };
+
+  const renderAppIcon = (iconUrl: string, colorClass: string) => {
+    const props = { size: 28, strokeWidth: 2, className: colorClass };
+    if (iconUrl && iconUrl.startsWith('preset:')) {
+      const presetId = iconUrl.split(':')[1];
+      switch (presetId) {
+        case 'layout': return <LayoutGrid {...props} />;
+        case 'book': return <BookOpen {...props} />;
+        case 'graduation': return <GraduationCap {...props} />;
+        case 'users': return <Users {...props} />;
+        case 'file': return <FileText {...props} />;
+        case 'chart': return <BarChart3 {...props} />;
+        case 'monitor': return <Monitor {...props} />;
+        case 'help': return <HelpCircle {...props} />;
+        case 'data': return <Database {...props} />;
+        default: return <LayoutGrid {...props} />;
+      }
+    }
+    return <img src={iconUrl} alt="" className="w-8 h-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />;
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] font-sans text-slate-900">
+      <Sidebar 
+        isAdmin={isAdmin} 
+        onAdminClick={() => setIsLoginOpen(true)} 
+        onLogout={() => setIsAdmin(false)} 
+        heroTitle={pageConfig.heroTitle}
+        apps={apps}
+        apiUrl={API_URL}
+      />
+
+      <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth">
+        {/* UNAIR Branded Header */}
+        <div className="sticky top-0 z-30 bg-[#002147] border-b border-white/10 px-8 py-5 flex justify-between items-center shadow-lg">
+          <div className="flex items-center gap-4">
+            <div className="md:hidden w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex-shrink-0">
+               <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
+            </div>
+            <div className="flex flex-col">
+              {isAdmin ? (
+                <input 
+                  type="text" 
+                  value={pageConfig.heroTitle} 
+                  onChange={(e) => handleConfigChange('heroTitle', e.target.value)} 
+                  className="text-xl font-bold text-white bg-transparent border-b border-[#FFC600]/30 focus:border-[#FFC600] focus:outline-none px-1 mb-1" 
+                  placeholder="Judul Utama"
+                />
+              ) : (
+                <h2 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                  <span className="w-1 h-6 bg-[#FFC600] rounded-full"></span>
+                  {pageConfig.heroTitle}
+                </h2>
+              )}
+              
+              <div className="flex items-center gap-2">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-[#FFC600]"></span>
+                {isAdmin ? (
+                  <input 
+                    type="text" 
+                    value={pageConfig.heroDescription} 
+                    onChange={(e) => handleConfigChange('heroDescription', e.target.value)} 
+                    className="text-[10px] text-white/70 bg-transparent border-b border-white/10 focus:border-[#FFC600] focus:outline-none px-1 font-bold uppercase tracking-[0.1em]" 
+                    placeholder="Sub Judul"
+                  />
+                ) : (
+                  <p className="text-[10px] text-white/50 font-bold uppercase tracking-[0.1em]">
+                    {pageConfig.heroDescription}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-6">
+             {apiError && (
+               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-xs font-bold animate-pulse">
+                 <WifiOff size={14} />
+                 <span>Koneksi Terputus</span>
+               </div>
+             )}
+
+             <div className="hidden lg:flex items-center gap-4 bg-white/10 px-5 py-2.5 rounded-2xl border border-white/10 shadow-inner">
+                <div className="flex items-center gap-2 border-r border-white/10 pr-4">
+                  <Clock size={16} className="text-[#FFC600] animate-pulse" />
+                  <p className="text-sm text-white font-mono font-bold tracking-widest">
+                    {currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </p>
+                </div>
+                <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest">
+                  {currentTime.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </p>
+             </div>
+             {isAdmin && (
+               <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FFC600] text-[#002147] text-[10px] font-black rounded-lg shadow-xl uppercase tracking-widest">
+                 <ShieldCheck size={12} /> Mode Editor
+               </div>
+             )}
+          </div>
+        </div>
+
+        <div className="p-8 md:p-12 max-w-[1400px] mx-auto">
+          {isLoading && apps.length === 0 ? (
+            <div className="flex flex-col justify-center items-center h-96">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-4 border-slate-200"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-[#002147] border-t-[#FFC600] animate-spin"></div>
+              </div>
+              <p className="mt-6 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">Sinkronisasi Data...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {apps.map((app) => {
+                const isMaintenance = app.status === 'maintenance';
+                const isOff = app.status === 'off';
+                const variant = colorVariants[app.color] || colorVariants['blue'];
+
+                return (
+                  <div key={app.id} className={`group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-2xl hover:shadow-[#002147]/10 hover:-translate-y-1 transition-all duration-500 flex flex-col overflow-hidden ${isOff ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
+                    {/* Card Header Color Strip */}
+                    <div className={`h-1.5 w-full ${variant.bg}`}></div>
+                    
+                    <div className="p-8 pb-4 relative">
+                      {isAdmin && (
+                        <div className="absolute top-6 right-6 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <button onClick={() => { setEditingApp(app); setIsEditorOpen(true); }} className="p-2 bg-slate-50 hover:bg-[#002147] hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Edit2 size={14} /></button>
+                          <button onClick={() => setDeleteApp(app)} className="p-2 bg-slate-50 hover:bg-red-600 hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Trash2 size={14} /></button>
+                        </div>
+                      )}
+
+                      <div className="flex items-start justify-between mb-6">
+                        <div className={`w-14 h-14 rounded-2xl ${variant.light} flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform duration-500`}>
+                          {renderAppIcon(app.iconUrl, variant.text)}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isMaintenance ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                            {app.category || 'Layanan'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <h3 className="text-xl font-extrabold text-[#002147] mb-2 group-hover:text-blue-700 transition-colors">{app.title}</h3>
+                      <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 h-10">{app.description}</p>
+                    </div>
+                    
+                    <div className="p-8 pt-0 mt-auto">
+                      <a 
+                        href={isMaintenance || isOff ? '#' : app.url}
+                        target={isMaintenance || isOff ? '_self' : '_blank'}
+                        className={`w-full group/btn flex items-center justify-between py-4 px-6 rounded-2xl text-xs font-black tracking-[0.15em] transition-all duration-300 ${isMaintenance ? 'bg-amber-50 text-amber-700 cursor-not-allowed border border-amber-200' : 'bg-[#FFC600] hover:bg-[#002147] text-[#002147] hover:text-white shadow-lg shadow-[#FFC600]/20 hover:shadow-[#002147]/20'}`}
+                        onClick={(e) => (isMaintenance || isOff) && e.preventDefault()}
+                      >
+                        <span className="uppercase">{isMaintenance ? 'Pemeliharaan' : 'Masuk Aplikasi'}</span>
+                        <div className="flex items-center gap-2">
+                           <span className={`w-6 h-[2px] ${isMaintenance ? 'bg-amber-700' : 'bg-[#002147] group-hover/btn:bg-white'} group-hover/btn:w-10 transition-all`}></span>
+                           <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {isAdmin && (
+                <button 
+                  onClick={() => { setEditingApp(null); setIsEditorOpen(true); }} 
+                  className="group min-h-[300px] border-2 border-dashed border-slate-300 hover:border-[#002147] hover:bg-[#002147]/5 rounded-3xl flex flex-col items-center justify-center gap-4 transition-all"
+                >
+                  <div className="w-14 h-14 rounded-full bg-white shadow-lg border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-[#002147] group-hover:scale-110 transition-all">
+                    <Plus size={32} />
+                  </div>
+                  <span className="font-bold text-xs uppercase tracking-[0.2em] text-slate-400 group-hover:text-[#002147]">Tambah Layanan</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} onLogin={handleLogin} />
+      <AppEditorModal isOpen={isEditorOpen} onClose={() => setIsEditorOpen(false)} onSave={handleSaveApp} editingApp={editingApp} />
+      <DeleteConfirmationModal isOpen={!!deleteApp} onClose={() => setDeleteApp(null)} onConfirm={handleConfirmDelete} appName={deleteApp?.title || ''} />
+    </div>
+  );
+};
+
+export default App;
