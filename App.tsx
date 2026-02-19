@@ -3,6 +3,8 @@ import LoginModal from './components/LoginModal';
 import AppEditorModal from './components/AppEditorModal';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import Sidebar from './components/Sidebar';
+import ParticleBackground from './components/ParticleBackground';
+import TiltCard from './components/TiltCard';
 import { Plus, Edit2, Trash2, LayoutGrid, ExternalLink, BookOpen, GraduationCap, Users, FileText, BarChart3, Monitor, HelpCircle, Database, AlertCircle, RefreshCw, Clock, ArrowRight, ShieldCheck, WifiOff } from 'lucide-react';
 import { AppItem, PageConfig, AppColor } from './types';
 import { INITIAL_CONFIG } from './constants';
@@ -26,7 +28,7 @@ const App: React.FC = () => {
   const [editingApp, setEditingApp] = useState<AppItem | null>(null);
   const [deleteApp, setDeleteApp] = useState<AppItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [apiError, setApiError] = useState<boolean>(false); // Changed to boolean for cleaner UI logic
+  const [apiError, setApiError] = useState<boolean>(false); 
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [apps, setApps] = useState<AppItem[]>([]);
@@ -63,7 +65,6 @@ const App: React.FC = () => {
       setApiError(false);
     } catch (error: any) {
       console.error("Fetch error:", error);
-      // Only set error state, do NOT alert
       setApiError(true);
     } finally {
       if (!isBackground) {
@@ -73,14 +74,12 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData(); // Initial Load
+    fetchData(); 
     
-    // Auto-sync mechanism (Polling every 3 seconds)
     const syncInterval = setInterval(() => {
       fetchData(true);
     }, 3000);
 
-    // Clock timer
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -143,7 +142,6 @@ const App: React.FC = () => {
         })
       });
     } catch (error) {
-      // Fail silently for config updates
     }
   };
 
@@ -167,8 +165,27 @@ const App: React.FC = () => {
     return <img src={iconUrl} alt="" className="w-8 h-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />;
   };
 
+  // Custom CSS for Staggered Animation
+  const animationStyles = `
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-fadeInUp {
+      animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      opacity: 0;
+    }
+  `;
+
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] font-sans text-slate-900">
+      <style>{animationStyles}</style>
       <Sidebar 
         isAdmin={isAdmin} 
         onAdminClick={() => setIsLoginOpen(true)} 
@@ -178,9 +195,14 @@ const App: React.FC = () => {
         apiUrl={API_URL}
       />
 
-      <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth">
+      <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth flex flex-col">
+        {/* Background Animation - Placed here to sit behind content */}
+        <div className="fixed inset-0 md:left-72 z-0 pointer-events-none">
+           <ParticleBackground />
+        </div>
+
         {/* UNAIR Branded Header */}
-        <div className="sticky top-0 z-30 bg-[#002147] border-b border-white/10 px-8 py-5 flex justify-between items-center shadow-lg">
+        <div className="sticky top-0 z-30 bg-[#002147]/95 backdrop-blur-md border-b border-white/10 px-8 py-5 flex justify-between items-center shadow-lg">
           <div className="flex items-center gap-4">
             <div className="md:hidden w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex-shrink-0">
                <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
@@ -247,7 +269,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-8 md:p-12 max-w-[1400px] mx-auto">
+        <div className="p-8 md:p-12 max-w-[1400px] mx-auto w-full relative z-10">
           {isLoading && apps.length === 0 ? (
             <div className="flex flex-col justify-center items-center h-96">
               <div className="relative w-16 h-16">
@@ -258,53 +280,62 @@ const App: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {apps.map((app) => {
+              {apps.map((app, index) => {
                 const isMaintenance = app.status === 'maintenance';
                 const isOff = app.status === 'off';
                 const variant = colorVariants[app.color] || colorVariants['blue'];
 
                 return (
-                  <div key={app.id} className={`group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-2xl hover:shadow-[#002147]/10 hover:-translate-y-1 transition-all duration-500 flex flex-col overflow-hidden ${isOff ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
-                    {/* Card Header Color Strip */}
-                    <div className={`h-1.5 w-full ${variant.bg}`}></div>
-                    
-                    <div className="p-8 pb-4 relative">
-                      {isAdmin && (
-                        <div className="absolute top-6 right-6 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <button onClick={() => { setEditingApp(app); setIsEditorOpen(true); }} className="p-2 bg-slate-50 hover:bg-[#002147] hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Edit2 size={14} /></button>
-                          <button onClick={() => setDeleteApp(app)} className="p-2 bg-slate-50 hover:bg-red-600 hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Trash2 size={14} /></button>
-                        </div>
-                      )}
+                  <div 
+                    key={app.id} 
+                    className="animate-fadeInUp h-full"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    <TiltCard 
+                      className={`group bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden transition-all duration-300 h-full ${isOff ? 'opacity-50 grayscale pointer-events-none' : ''}`}
+                      disabled={isOff}
+                    >
+                      {/* Card Header Color Strip */}
+                      <div className={`h-1.5 w-full ${variant.bg}`}></div>
+                      
+                      <div className="p-8 pb-4 relative">
+                        {isAdmin && (
+                          <div className="absolute top-6 right-6 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50">
+                            <button onClick={(e) => { e.stopPropagation(); setEditingApp(app); setIsEditorOpen(true); }} className="p-2 bg-slate-50 hover:bg-[#002147] hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Edit2 size={14} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); setDeleteApp(app); }} className="p-2 bg-slate-50 hover:bg-red-600 hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Trash2 size={14} /></button>
+                          </div>
+                        )}
 
-                      <div className="flex items-start justify-between mb-6">
-                        <div className={`w-14 h-14 rounded-2xl ${variant.light} flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform duration-500`}>
-                          {renderAppIcon(app.iconUrl, variant.text)}
+                        <div className="flex items-start justify-between mb-6">
+                          <div className={`w-14 h-14 rounded-2xl ${variant.light} flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform duration-500`}>
+                            {renderAppIcon(app.iconUrl, variant.text)}
+                          </div>
+                          <div className="flex flex-col items-end">
+                            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isMaintenance ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                              {app.category || 'Layanan'}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end">
-                          <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isMaintenance ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
-                            {app.category || 'Layanan'}
-                          </span>
-                        </div>
+
+                        <h3 className="text-xl font-extrabold text-[#002147] mb-2 group-hover:text-blue-700 transition-colors">{app.title}</h3>
+                        <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 h-10">{app.description}</p>
                       </div>
-
-                      <h3 className="text-xl font-extrabold text-[#002147] mb-2 group-hover:text-blue-700 transition-colors">{app.title}</h3>
-                      <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 h-10">{app.description}</p>
-                    </div>
-                    
-                    <div className="p-8 pt-0 mt-auto">
-                      <a 
-                        href={isMaintenance || isOff ? '#' : app.url}
-                        target={isMaintenance || isOff ? '_self' : '_blank'}
-                        className={`w-full group/btn flex items-center justify-between py-4 px-6 rounded-2xl text-xs font-black tracking-[0.15em] transition-all duration-300 ${isMaintenance ? 'bg-amber-50 text-amber-700 cursor-not-allowed border border-amber-200' : 'bg-[#FFC600] hover:bg-[#002147] text-[#002147] hover:text-white shadow-lg shadow-[#FFC600]/20 hover:shadow-[#002147]/20'}`}
-                        onClick={(e) => (isMaintenance || isOff) && e.preventDefault()}
-                      >
-                        <span className="uppercase">{isMaintenance ? 'Pemeliharaan' : 'Masuk Aplikasi'}</span>
-                        <div className="flex items-center gap-2">
-                           <span className={`w-6 h-[2px] ${isMaintenance ? 'bg-amber-700' : 'bg-[#002147] group-hover/btn:bg-white'} group-hover/btn:w-10 transition-all`}></span>
-                           <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                        </div>
-                      </a>
-                    </div>
+                      
+                      <div className="p-8 pt-0 mt-auto">
+                        <a 
+                          href={isMaintenance || isOff ? '#' : app.url}
+                          target={isMaintenance || isOff ? '_self' : '_blank'}
+                          className={`w-full group/btn flex items-center justify-between py-4 px-6 rounded-2xl text-xs font-black tracking-[0.15em] transition-all duration-300 relative z-20 ${isMaintenance ? 'bg-amber-50 text-amber-700 cursor-not-allowed border border-amber-200' : 'bg-[#FFC600] hover:bg-[#002147] text-[#002147] hover:text-white shadow-lg shadow-[#FFC600]/20 hover:shadow-[#002147]/20'}`}
+                          onClick={(e) => (isMaintenance || isOff) && e.preventDefault()}
+                        >
+                          <span className="uppercase">{isMaintenance ? 'Pemeliharaan' : 'Masuk Aplikasi'}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-6 h-[2px] ${isMaintenance ? 'bg-amber-700' : 'bg-[#002147] group-hover/btn:bg-white'} group-hover/btn:w-10 transition-all`}></span>
+                            <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                          </div>
+                        </a>
+                      </div>
+                    </TiltCard>
                   </div>
                 );
               })}
@@ -312,7 +343,8 @@ const App: React.FC = () => {
               {isAdmin && (
                 <button 
                   onClick={() => { setEditingApp(null); setIsEditorOpen(true); }} 
-                  className="group min-h-[300px] border-2 border-dashed border-slate-300 hover:border-[#002147] hover:bg-[#002147]/5 rounded-3xl flex flex-col items-center justify-center gap-4 transition-all"
+                  className="group min-h-[300px] border-2 border-dashed border-slate-300 hover:border-[#002147] hover:bg-[#002147]/5 rounded-3xl flex flex-col items-center justify-center gap-4 transition-all animate-fadeInUp"
+                  style={{ animationDelay: `${apps.length * 100}ms` }}
                 >
                   <div className="w-14 h-14 rounded-full bg-white shadow-lg border border-slate-100 flex items-center justify-center text-slate-400 group-hover:text-[#002147] group-hover:scale-110 transition-all">
                     <Plus size={32} />
