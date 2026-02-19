@@ -30,6 +30,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<boolean>(false); 
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [apps, setApps] = useState<AppItem[]>([]);
   const [pageConfig, setPageConfig] = useState<PageConfig>(INITIAL_CONFIG);
@@ -184,7 +185,7 @@ const App: React.FC = () => {
   `;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] font-sans text-slate-900">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] font-sans text-slate-900 overflow-hidden">
       <style>{animationStyles}</style>
       <Sidebar 
         isAdmin={isAdmin} 
@@ -193,11 +194,16 @@ const App: React.FC = () => {
         heroTitle={pageConfig.heroTitle}
         apps={apps}
         apiUrl={API_URL}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth flex flex-col">
+      <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth flex flex-col transition-all duration-300 ease-in-out">
         {/* Background Animation - Placed here to sit behind content */}
-        <div className="fixed inset-0 md:left-72 z-0 pointer-events-none">
+        <div 
+          className="fixed inset-0 z-0 pointer-events-none transition-all duration-300 ease-in-out"
+          style={{ left: isSidebarCollapsed ? '80px' : '288px' }}
+        >
            <ParticleBackground />
         </div>
 
@@ -298,7 +304,7 @@ const App: React.FC = () => {
                       {/* Card Header Color Strip */}
                       <div className={`h-1.5 w-full ${variant.bg}`}></div>
                       
-                      <div className="p-8 pb-4 relative">
+                      <div className="p-8 pb-4 relative text-center md:text-left">
                         {isAdmin && (
                           <div className="absolute top-6 right-6 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50">
                             <button onClick={(e) => { e.stopPropagation(); setEditingApp(app); setIsEditorOpen(true); }} className="p-2 bg-slate-50 hover:bg-[#002147] hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Edit2 size={14} /></button>
@@ -306,11 +312,11 @@ const App: React.FC = () => {
                           </div>
                         )}
 
-                        <div className="flex items-start justify-between mb-6">
+                        <div className="flex flex-col md:flex-row items-center md:items-start justify-between mb-6 gap-4">
                           <div className={`w-14 h-14 rounded-2xl ${variant.light} flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform duration-500`}>
                             {renderAppIcon(app.iconUrl, variant.text)}
                           </div>
-                          <div className="flex flex-col items-end">
+                          <div className="flex flex-col items-center md:items-end">
                             <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isMaintenance ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
                               {app.category || 'Layanan'}
                             </span>
