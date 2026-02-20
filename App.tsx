@@ -7,7 +7,7 @@ import ParticleBackground from './components/ParticleBackground';
 import TiltCard from './components/TiltCard';
 import { Plus, Edit2, Trash2, LayoutGrid, ExternalLink, BookOpen, GraduationCap, Users, FileText, BarChart3, Monitor, HelpCircle, Database, AlertCircle, RefreshCw, Clock, ArrowRight, ShieldCheck, WifiOff } from 'lucide-react';
 import { AppItem, PageConfig, AppColor } from './types';
-import { INITIAL_CONFIG } from './constants';
+import { INITIAL_CONFIG, INITIAL_APPS } from './constants';
 
 const API_URL = 'https://pkkii.pendidikan.unair.ac.id/pdb/api.php';
 const LOGO_URL = 'https://ppk2ipe.unair.ac.id/gambar/UNAIR_BRANDMARK_2025-02.png';
@@ -30,7 +30,6 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<boolean>(false); 
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [apps, setApps] = useState<AppItem[]>([]);
   const [pageConfig, setPageConfig] = useState<PageConfig>(INITIAL_CONFIG);
@@ -65,8 +64,12 @@ const App: React.FC = () => {
       }
       setApiError(false);
     } catch (error: any) {
-      console.error("Fetch error:", error);
+      if (!isBackground) {
+        console.warn("API unavailable, switching to offline mode.");
+      }
       setApiError(true);
+      // Fallback to INITIAL_APPS if we have no apps loaded yet to ensure UI works
+      setApps(prev => prev.length > 0 ? prev : INITIAL_APPS);
     } finally {
       if (!isBackground) {
         setIsLoading(false);
@@ -110,7 +113,7 @@ const App: React.FC = () => {
       setEditingApp(null);
       await fetchData(); 
     } catch (error) {
-      alert("Gagal menyimpan data. Periksa koneksi internet.");
+      alert("Mode Offline: Gagal menyimpan data ke server.");
     }
   };
 
@@ -126,7 +129,7 @@ const App: React.FC = () => {
       setDeleteApp(null);
       await fetchData();
     } catch (error) {
-       alert("Gagal menghapus data.");
+       alert("Mode Offline: Gagal menghapus data dari server.");
     }
   };
 
@@ -143,6 +146,7 @@ const App: React.FC = () => {
         })
       });
     } catch (error) {
+      // Silent error in offline mode
     }
   };
 
@@ -185,7 +189,7 @@ const App: React.FC = () => {
   `;
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] font-sans text-slate-900 overflow-hidden">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] font-sans text-slate-900">
       <style>{animationStyles}</style>
       <Sidebar 
         isAdmin={isAdmin} 
@@ -194,16 +198,11 @@ const App: React.FC = () => {
         heroTitle={pageConfig.heroTitle}
         apps={apps}
         apiUrl={API_URL}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth flex flex-col transition-all duration-300 ease-in-out">
+      <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth flex flex-col">
         {/* Background Animation - Placed here to sit behind content */}
-        <div 
-          className="fixed inset-0 z-0 pointer-events-none transition-all duration-300 ease-in-out"
-          style={{ left: isSidebarCollapsed ? '80px' : '288px' }}
-        >
+        <div className="fixed inset-0 md:left-72 z-0 pointer-events-none">
            <ParticleBackground />
         </div>
 
@@ -252,7 +251,7 @@ const App: React.FC = () => {
              {apiError && (
                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 text-xs font-bold animate-pulse">
                  <WifiOff size={14} />
-                 <span>Koneksi Terputus</span>
+                 <span>Mode Offline</span>
                </div>
              )}
 
@@ -298,13 +297,14 @@ const App: React.FC = () => {
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <TiltCard 
-                      className={`group bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden transition-all duration-300 h-full ${isOff ? 'opacity-50 grayscale pointer-events-none' : ''}`}
+                      // FIX: Removed 'pointer-events-none' from here so admin buttons are clickable even when off
+                      className={`group bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col overflow-hidden transition-all duration-300 h-full ${isOff ? 'opacity-50 grayscale' : ''}`}
                       disabled={isOff}
                     >
                       {/* Card Header Color Strip */}
                       <div className={`h-1.5 w-full ${variant.bg}`}></div>
                       
-                      <div className="p-8 pb-4 relative text-center md:text-left">
+                      <div className="p-8 pb-4 relative">
                         {isAdmin && (
                           <div className="absolute top-6 right-6 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50">
                             <button onClick={(e) => { e.stopPropagation(); setEditingApp(app); setIsEditorOpen(true); }} className="p-2 bg-slate-50 hover:bg-[#002147] hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Edit2 size={14} /></button>
@@ -312,11 +312,11 @@ const App: React.FC = () => {
                           </div>
                         )}
 
-                        <div className="flex flex-col md:flex-row items-center md:items-start justify-between mb-6 gap-4">
+                        <div className="flex items-start justify-between mb-6">
                           <div className={`w-14 h-14 rounded-2xl ${variant.light} flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform duration-500`}>
                             {renderAppIcon(app.iconUrl, variant.text)}
                           </div>
-                          <div className="flex flex-col items-center md:items-end">
+                          <div className="flex flex-col items-end">
                             <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isMaintenance ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
                               {app.category || 'Layanan'}
                             </span>
@@ -324,14 +324,15 @@ const App: React.FC = () => {
                         </div>
 
                         <h3 className="text-xl font-extrabold text-[#002147] mb-2 group-hover:text-blue-700 transition-colors">{app.title}</h3>
-                        <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-6 h-10">{app.description}</p>
+                        <p className="text-slate-500 text-sm leading-relaxed mb-6">{app.description}</p>
                       </div>
                       
                       <div className="p-8 pt-0 mt-auto">
                         <a 
                           href={isMaintenance || isOff ? '#' : app.url}
                           target={isMaintenance || isOff ? '_self' : '_blank'}
-                          className={`w-full group/btn flex items-center justify-between py-4 px-6 rounded-2xl text-xs font-black tracking-[0.15em] transition-all duration-300 relative z-20 ${isMaintenance ? 'bg-amber-50 text-amber-700 cursor-not-allowed border border-amber-200' : 'bg-[#FFC600] hover:bg-[#002147] text-[#002147] hover:text-white shadow-lg shadow-[#FFC600]/20 hover:shadow-[#002147]/20'}`}
+                          // FIX: Added 'pointer-events-none' here instead so only the link is disabled
+                          className={`w-full group/btn flex items-center justify-between py-4 px-6 rounded-2xl text-xs font-black tracking-[0.15em] transition-all duration-300 relative z-20 ${isMaintenance ? 'bg-amber-50 text-amber-700 cursor-not-allowed border border-amber-200' : 'bg-[#FFC600] hover:bg-[#002147] text-[#002147] hover:text-white shadow-lg shadow-[#FFC600]/20 hover:shadow-[#002147]/20'} ${isOff ? 'cursor-not-allowed pointer-events-none' : ''}`}
                           onClick={(e) => (isMaintenance || isOff) && e.preventDefault()}
                         >
                           <span className="uppercase">{isMaintenance ? 'Pemeliharaan' : 'Masuk Aplikasi'}</span>
