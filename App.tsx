@@ -10,7 +10,7 @@ import { AppItem, PageConfig, AppColor } from './types';
 import { INITIAL_CONFIG, INITIAL_APPS } from './constants';
 
 const API_URL = 'https://pkkii.pendidikan.unair.ac.id/pdb/api.php';
-const LOGO_URL = 'https://ppk2ipe.unair.ac.id/gambar/UNAIR_BRANDMARK_2025-02.png';
+const LOGO_URL = 'https://pkkii.pendidikan.unair.ac.id/website/logo.jpeg';
 
 const colorVariants: Record<AppColor, { bg: string, text: string, light: string }> = {
   blue: { bg: 'bg-[#002147]', text: 'text-[#002147]', light: 'bg-blue-50' },
@@ -167,7 +167,7 @@ const App: React.FC = () => {
         default: return <LayoutGrid {...props} />;
       }
     }
-    return <img src={iconUrl} alt="" className="w-8 h-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />;
+    return <img src={iconUrl} alt="" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} />;
   };
 
   // Custom CSS for Staggered Animation
@@ -210,41 +210,17 @@ const App: React.FC = () => {
         <div className="sticky top-0 z-30 bg-[#002147]/95 backdrop-blur-md border-b border-white/10 px-8 py-5 flex justify-between items-center shadow-lg">
           <div className="flex items-center gap-4">
             <div className="md:hidden w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex-shrink-0">
-               <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" />
+               <img 
+                 src={LOGO_URL} 
+                 alt="Logo" 
+                 className="w-full h-full object-contain" 
+                 referrerPolicy="no-referrer"
+                 onError={(e) => {
+                   e.currentTarget.src = 'https://ui-avatars.com/api/?name=UNAIR&background=002147&color=fff';
+                 }}
+               />
             </div>
-            <div className="flex flex-col">
-              {isAdmin ? (
-                <input 
-                  type="text" 
-                  value={pageConfig.heroTitle} 
-                  onChange={(e) => handleConfigChange('heroTitle', e.target.value)} 
-                  className="text-xl font-bold text-white bg-transparent border-b border-[#FFC600]/30 focus:border-[#FFC600] focus:outline-none px-1 mb-1" 
-                  placeholder="Judul Utama"
-                />
-              ) : (
-                <h2 className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
-                  <span className="w-1 h-6 bg-[#FFC600] rounded-full"></span>
-                  {pageConfig.heroTitle}
-                </h2>
-              )}
-              
-              <div className="flex items-center gap-2">
-                <span className="flex h-1.5 w-1.5 rounded-full bg-[#FFC600]"></span>
-                {isAdmin ? (
-                  <input 
-                    type="text" 
-                    value={pageConfig.heroDescription} 
-                    onChange={(e) => handleConfigChange('heroDescription', e.target.value)} 
-                    className="text-[10px] text-white/70 bg-transparent border-b border-white/10 focus:border-[#FFC600] focus:outline-none px-1 font-bold uppercase tracking-[0.1em]" 
-                    placeholder="Sub Judul"
-                  />
-                ) : (
-                  <p className="text-[10px] text-white/50 font-bold uppercase tracking-[0.1em]">
-                    {pageConfig.heroDescription}
-                  </p>
-                )}
-              </div>
-            </div>
+            {/* Removed Title and Description text */}
           </div>
           
           <div className="flex items-center gap-6">
@@ -284,7 +260,7 @@ const App: React.FC = () => {
               <p className="mt-6 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">Sinkronisasi Data...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {apps.map((app, index) => {
                 const isMaintenance = app.status === 'maintenance';
                 const isOff = app.status === 'off';
@@ -304,16 +280,16 @@ const App: React.FC = () => {
                       {/* Card Header Color Strip */}
                       <div className={`h-1.5 w-full ${variant.bg}`}></div>
                       
-                      <div className="p-8 pb-4 relative">
+                      <div className="p-6 pb-3 relative">
                         {isAdmin && (
-                          <div className="absolute top-6 right-6 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50">
+                          <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-50">
                             <button onClick={(e) => { e.stopPropagation(); setEditingApp(app); setIsEditorOpen(true); }} className="p-2 bg-slate-50 hover:bg-[#002147] hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Edit2 size={14} /></button>
                             <button onClick={(e) => { e.stopPropagation(); setDeleteApp(app); }} className="p-2 bg-slate-50 hover:bg-red-600 hover:text-white text-slate-600 rounded-lg border border-slate-200 transition-all"><Trash2 size={14} /></button>
                           </div>
                         )}
 
-                        <div className="flex items-start justify-between mb-6">
-                          <div className={`w-14 h-14 rounded-2xl ${variant.light} flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform duration-500`}>
+                        <div className="flex items-start justify-between mb-4">
+                          <div className={`w-12 h-12 rounded-xl ${variant.light} flex items-center justify-center shadow-inner group-hover:rotate-6 transition-transform duration-500`}>
                             {renderAppIcon(app.iconUrl, variant.text)}
                           </div>
                           <div className="flex flex-col items-end">
@@ -323,16 +299,16 @@ const App: React.FC = () => {
                           </div>
                         </div>
 
-                        <h3 className="text-xl font-extrabold text-[#002147] mb-2 group-hover:text-blue-700 transition-colors">{app.title}</h3>
-                        <p className="text-slate-500 text-sm leading-relaxed mb-6">{app.description}</p>
+                        <h3 className="text-lg font-extrabold text-[#002147] mb-1.5 group-hover:text-blue-700 transition-colors">{app.title}</h3>
+                        <p className="text-slate-500 text-[13px] leading-relaxed mb-4">{app.description}</p>
                       </div>
                       
-                      <div className="p-8 pt-0 mt-auto">
+                      <div className="p-6 pt-0 mt-auto">
                         <a 
                           href={isMaintenance || isOff ? '#' : app.url}
                           target={isMaintenance || isOff ? '_self' : '_blank'}
                           // FIX: Added 'pointer-events-none' here instead so only the link is disabled
-                          className={`w-full group/btn flex items-center justify-between py-4 px-6 rounded-2xl text-xs font-black tracking-[0.15em] transition-all duration-300 relative z-20 ${isMaintenance ? 'bg-amber-50 text-amber-700 cursor-not-allowed border border-amber-200' : 'bg-[#FFC600] hover:bg-[#002147] text-[#002147] hover:text-white shadow-lg shadow-[#FFC600]/20 hover:shadow-[#002147]/20'} ${isOff ? 'cursor-not-allowed pointer-events-none' : ''}`}
+                          className={`w-full group/btn flex items-center justify-between py-3 px-5 rounded-xl text-[10px] font-black tracking-[0.15em] transition-all duration-300 relative z-20 ${isMaintenance ? 'bg-amber-50 text-amber-700 cursor-not-allowed border border-amber-200' : 'bg-[#FFC600] hover:bg-[#002147] text-[#002147] hover:text-white shadow-lg shadow-[#FFC600]/20 hover:shadow-[#002147]/20'} ${isOff ? 'cursor-not-allowed pointer-events-none' : ''}`}
                           onClick={(e) => (isMaintenance || isOff) && e.preventDefault()}
                         >
                           <span className="uppercase">{isMaintenance ? 'Pemeliharaan' : 'Masuk Aplikasi'}</span>

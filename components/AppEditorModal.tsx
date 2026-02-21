@@ -81,7 +81,7 @@ const AppEditorModal: React.FC<AppEditorModalProps> = ({ isOpen, onClose, onSave
       const IconComp = preset ? preset.icon : LayoutGrid;
       return <IconComp size={24} className={`text-${formData.color}-600`} />;
     } else if (formData.iconUrl) {
-      return <img src={formData.iconUrl} alt="Preview" className="w-8 h-8 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />;
+      return <img src={formData.iconUrl} alt="Preview" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" onError={(e) => (e.currentTarget.style.display = 'none')} />;
     }
     return <ImageIcon size={20} className="text-slate-400" />;
   };

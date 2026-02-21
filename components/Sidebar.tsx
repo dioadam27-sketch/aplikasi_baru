@@ -38,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin, onAdminClick, onLogout, hero
         default: return <LayoutGrid {...props} />;
       }
     }
-    return <img src={iconUrl} alt="" className="w-3.5 h-3.5 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />;
+    return <img src={iconUrl} alt="" className="w-3.5 h-3.5 object-contain" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} />;
   };
 
   return (
@@ -60,19 +60,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin, onAdminClick, onLogout, hero
             <div className="absolute -inset-1 bg-gradient-to-r from-[#FFC600] to-yellow-400 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
             <div className="relative w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden p-2">
               <img 
-                src="https://ppk2ipe.unair.ac.id/gambar/UNAIR_BRANDMARK_2025-02.png" 
+                src="https://pkkii.pendidikan.unair.ac.id/website/logo.jpeg" 
                 alt="Logo UNAIR" 
                 className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://ui-avatars.com/api/?name=UNAIR&background=fff&color=002147';
+                }}
               />
             </div>
           </div>
           <div className="hidden md:block">
-            <h1 className="font-extrabold text-xl tracking-tight leading-tight uppercase">
-              PDB <span className="text-[#FFC600]">Apps</span>
+            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-0.5">Direktorat Pendidikan</p>
+            <h1 className="font-extrabold text-2xl tracking-tight leading-none uppercase">
+              PDB <span className="text-[#FFC600]">APPS</span>
             </h1>
-            <p className="text-[10px] text-white/40 font-bold tracking-[0.2em] uppercase mt-1">
-              Universitas Airlangga
-            </p>
           </div>
         </div>
 
