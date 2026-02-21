@@ -35,12 +35,28 @@ const App: React.FC = () => {
   const [pageConfig, setPageConfig] = useState<PageConfig>(INITIAL_CONFIG);
 
   const fetchData = async (isBackground = false) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+
     try {
       if (!isBackground) {
         setIsLoading(true);
       }
       
-      const response = await fetch(`${API_URL}?action=get_data`);
+      // Use POST for get_data as well to avoid caching issues and GET param stripping
+      const formData = new URLSearchParams();
+      formData.append('action', 'get_data');
+
+      const response = await fetch(`${API_URL}`, { 
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const data = await response.json();
       
@@ -103,33 +119,76 @@ const App: React.FC = () => {
   };
 
   const handleSaveApp = async (app: AppItem) => {
+    // Optimistic Update: Update local state immediately
+    const oldApps = [...apps];
+    setApps(prev => {
+      const index = prev.findIndex(a => a.id === app.id);
+      if (index > -1) {
+        const newApps = [...prev];
+        newApps[index] = app;
+        return newApps;
+      }
+      return [...prev, app];
+    });
+
     try {
-      const res = await fetch(`${API_URL}?action=save_app`, {
+      // Use URLSearchParams for better compatibility with shared hosting (avoid JSON body issues)
+      const formData = new URLSearchParams();
+      formData.append('action', 'save_app');
+      formData.append('id', app.id);
+      formData.append('title', app.title);
+      formData.append('description', app.description);
+      formData.append('url', app.url);
+      formData.append('icon_url', app.iconUrl);
+      formData.append('category', app.category);
+      formData.append('status', app.status);
+      formData.append('color', app.color);
+
+      const res = await fetch(`${API_URL}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...app, icon_url: app.iconUrl })
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
       });
+      
       if (!res.ok) throw new Error('Simpan gagal');
       setEditingApp(null);
-      await fetchData(); 
+      // Optional: re-fetch to ensure server state is in sync
+      await fetchData(true); 
     } catch (error) {
-      alert("Mode Offline: Gagal menyimpan data ke server.");
+      // Rollback if failed
+      setApps(oldApps);
+      alert("Gagal menyimpan ke server. Periksa koneksi Anda.");
     }
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteApp) return;
+    
+    // Optimistic Update
+    const oldApps = [...apps];
+    setApps(prev => prev.filter(a => a.id !== deleteApp.id));
+    const deletedApp = deleteApp;
+    setDeleteApp(null);
+
     try {
-      const res = await fetch(`${API_URL}?action=delete_app`, {
+      const formData = new URLSearchParams();
+      formData.append('action', 'delete_app');
+      formData.append('id', deletedApp.id);
+
+      const res = await fetch(`${API_URL}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: deleteApp.id })
+        headers: { 
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData
       });
       if (!res.ok) throw new Error('Hapus gagal');
-      setDeleteApp(null);
-      await fetchData();
+      await fetchData(true);
     } catch (error) {
-       alert("Mode Offline: Gagal menghapus data dari server.");
+       setApps(oldApps);
+       alert("Gagal menghapus dari server.");
     }
   };
 
@@ -139,8 +198,12 @@ const App: React.FC = () => {
     try {
       await fetch(`${API_URL}?action=update_config`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-Action': 'update_config'
+        },
         body: JSON.stringify({
+          action: 'update_config',
           heroTitle: key === 'heroTitle' ? value : pageConfig.heroTitle,
           heroDescription: key === 'heroDescription' ? value : pageConfig.heroDescription
         })

@@ -2,7 +2,7 @@
 // Izinkan akses dari mana saja (CORS)
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Action');
 header('Content-Type: application/json; charset=utf-8');
 
 // Handle preflight requests (Penting untuk React/Fetch)
@@ -13,7 +13,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once 'config.php';
 
-$action = $_GET['action'] ?? '';
+// Baca input JSON sekali saja di awal
+$rawInput = file_get_contents('php://input');
+$input = json_decode($rawInput, true);
+
+// Tentukan action dari berbagai sumber
+$jsonAction = (is_array($input) && isset($input['action'])) ? $input['action'] : null;
+$action = $_REQUEST['action'] ?? $jsonAction ?? $_SERVER['HTTP_X_ACTION'] ?? '';
+
+// Default ke get_data jika action kosong (untuk mengatasi server yang menghapus parameter GET)
+if (empty($action)) {
+    $action = 'get_data';
+}
 
 switch ($action) {
     case 'get_data':
@@ -37,8 +48,7 @@ switch ($action) {
         break;
 
     case 'save_app':
-        $input = file_get_contents('php://input');
-        $data = json_decode($input, true);
+        $data = $input ?: $_POST; // Gunakan input JSON atau fallback ke $_POST
         
         if (!$data || !isset($data['id'])) {
             http_response_code(400);
@@ -76,8 +86,7 @@ switch ($action) {
         break;
 
     case 'delete_app':
-        $input = file_get_contents('php://input');
-        $data = json_decode($input, true);
+        $data = $input ?: $_POST;
         
         if (!isset($data['id'])) {
             http_response_code(400);
@@ -96,8 +105,7 @@ switch ($action) {
         break;
 
     case 'update_config':
-        $input = file_get_contents('php://input');
-        $data = json_decode($input, true);
+        $data = $input; // Gunakan input yang sudah dibaca di atas
         
         if (!$data) {
             http_response_code(400);
