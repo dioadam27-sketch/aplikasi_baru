@@ -230,7 +230,7 @@ const App: React.FC = () => {
         default: return <LayoutGrid {...props} />;
       }
     }
-    return <img src={iconUrl} alt="" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} />;
+    return <img src={iconUrl} alt="" className="w-8 h-8 object-contain" style={{ maxWidth: '100%', maxHeight: '100%' }} referrerPolicy="no-referrer" onError={(e) => { e.currentTarget.style.display = 'none'; }} />;
   };
 
   // Custom CSS for Staggered Animation
@@ -272,14 +272,16 @@ const App: React.FC = () => {
         {/* UNAIR Branded Header */}
         <div className="sticky top-0 z-30 bg-[#002147]/95 backdrop-blur-md border-b border-white/10 px-8 py-5 flex justify-between items-center shadow-lg">
           <div className="flex items-center gap-4">
-            <div className="md:hidden w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex-shrink-0">
+            <div className="md:hidden w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 p-2 flex-shrink-0 overflow-hidden relative">
                <img 
                  src={LOGO_URL} 
                  alt="Logo" 
                  className="w-full h-full object-contain" 
+                 style={{ maxWidth: '100%', maxHeight: '100%' }}
                  referrerPolicy="no-referrer"
                  onError={(e) => {
                    e.currentTarget.src = 'https://ui-avatars.com/api/?name=UNAIR&background=002147&color=fff';
+                   e.currentTarget.onerror = null; // Prevent infinite loop
                  }}
                />
             </div>

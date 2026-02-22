@@ -58,14 +58,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin, onAdminClick, onLogout, hero
         <div className="flex flex-col items-center md:items-start gap-4">
           <div className="group relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-[#FFC600] to-yellow-400 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-            <div className="relative w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden p-2">
+            <div className="relative w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden p-2 flex-shrink-0">
               <img 
                 src="https://pkkii.pendidikan.unair.ac.id/website/logo.jpeg" 
                 alt="Logo UNAIR" 
                 className="w-full h-full object-contain"
+                style={{ maxWidth: '100%', maxHeight: '100%' }}
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   e.currentTarget.src = 'https://ui-avatars.com/api/?name=UNAIR&background=fff&color=002147';
+                  e.currentTarget.onerror = null; // Prevent infinite loop
                 }}
               />
             </div>
